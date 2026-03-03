@@ -1,0 +1,21 @@
+{
+  "name": "8-Ball Oracle",
+  "short_name": "Oracle",
+  "start_url": "/8ball-oracle/",
+  "display": "standalone",
+  "background_color": "#0a0508",
+  "theme_color": "#c9a84c",
+  "description": "Ask the oracle. Shake for your answer. The magic 8-ball never lies.",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
