@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>8-Ball Oracle</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@400;700&family=Permanent+Marker&family=VT323&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=UnifrakturMaguntia&family=Exo+2:wght@300;700&family=Abril+Fatface&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#0a0508; --bg2:#12080f;
+  --accent:#c9a84c; --accent-light:#f0d080;
+  --ball-glow:rgba(80,20,180,0.5);
+  --ball-bg1:#1a1a2e; --ball-bg2:#050308;
+  --window-bg:#0a0020; --answer-color:#c8aaff;
+  --text:rgba(255,255,255,0.85); --subtext:rgba(255,255,255,0.4);
+  --border:rgba(201,168,76,0.2); --surface:rgba(255,255,255,0.04);
+  --font-body:'Cinzel',serif; --font-answer:'Cinzel',serif; --font-title:'Cinzel Decorative',serif;
+}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);min-height:100vh;display:flex;flex-direction:column;align-items:center;font-family:var(--font-body);overflow-x:hidden;color:var(--accent);padding:0 0 60px;transition:background 0.7s,color 0.5s;}
+
+/* ── STARS ── */
+.stars{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.stars span{position:absolute;border-radius:50%;animation:twinkle var(--d,3s) ease-in-out infinite var(--delay,0s) alternate;}
+@keyframes twinkle{from{opacity:0.15;transform:scale(1);}to{opacity:0.9;transform:scale(1.5);}}
+
+/* ── HEADER ── */
+.header{
+  position:sticky;top:0;z-index:50;
+  width:100%;background:rgba(10,5,8,0.92);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:10px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:8px;
+}
+.header-logo{font-family:var(--font-title);font-size:0.85rem;letter-spacing:0.18em;color:var(--accent-light);white-space:nowrap;}
+.header-actions{display:flex;gap:6px;align-items:center;}
+.hbtn{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:6px;padding:5px 10px;cursor:pointer;
+  font-size:0.6rem;letter-spacing:0.1em;color:var(--accent);
+  font-family:var(--font-body);transition:all 0.2s;white-space:nowrap;
+}
+.hbtn:hover{background:rgba(201,168,76,0.12);border-color:var(--accent);}
+.hbtn.icon{padding:5px 8px;font-size:0.85rem;}
+
+/* ── MAIN LAYOUT ── */
+.main{position:relative;z-index:2;width:100%;max-width:440px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:12px;margin:0 auto;}
+
+/* ── TITLE ── */
+.title-area{text-align:center;}
+h1{font-family:var(--font-title);font-size:clamp(1rem,4vw,1.7rem);font-weight:700;letter-spacing:0.2em;color:var(--accent-light);text-shadow:0 0 30px var(--accent),0 0 80px rgba(201,168,76,0.15);transition:all 0.5s;}
+.tagline{font-size:0.52rem;letter-spacing:0.28em;color:rgba(201,168,76,0.4);margin-top:3px;transition:all 0.5s;}
+
+/* ── DROPDOWN ── */
+.selector-wrap{position:relative;z-index:20;width:100%;}
+.selector-trigger{
+  display:flex;align-items:center;gap:8px;padding:9px 14px;
+  background:var(--surface);border:1px solid var(--accent);border-radius:4px;
+  cursor:pointer;transition:background 0.25s,box-shadow 0.25s;
+  width:100%;user-select:none;
+}
+.selector-trigger:hover{background:rgba(255,255,255,0.07);box-shadow:0 0 18px rgba(201,168,76,0.1);}
+.sel-emoji{font-size:1.05rem;}
+.sel-name{font-family:var(--font-body);font-size:0.68rem;letter-spacing:0.12em;color:var(--accent-light);flex:1;text-align:left;}
+.sel-tier{font-size:0.45rem;letter-spacing:0.1em;padding:2px 7px;border-radius:10px;}
+.tier-free{background:rgba(201,168,76,0.12);color:var(--accent);}
+.tier-premium{background:linear-gradient(90deg,rgba(255,180,0,0.3),rgba(255,100,200,0.3));color:#ffddaa;border:1px solid rgba(255,180,0,0.25);}
+.sel-arrow{font-size:0.55rem;color:var(--accent);transition:transform 0.25s;opacity:0.6;}
+.selector-trigger.open .sel-arrow{transform:rotate(180deg);}
+
+.dropdown-menu{
+  position:absolute;top:calc(100% + 5px);left:0;right:0;
+  background:#0e0810;border:1px solid rgba(201,168,76,0.22);border-radius:4px;
+  overflow:hidden;max-height:0;transition:max-height 0.35s cubic-bezier(0.4,0,0.2,1),opacity 0.25s;
+  opacity:0;pointer-events:none;box-shadow:0 20px 60px rgba(0,0,0,0.85);z-index:30;
+}
+.dropdown-menu.open{max-height:400px;opacity:1;pointer-events:all;overflow-y:auto;}
+.dropdown-menu::-webkit-scrollbar{width:3px;}
+.dropdown-menu::-webkit-scrollbar-thumb{background:rgba(201,168,76,0.3);}
+.dd-section{font-size:0.42rem;letter-spacing:0.38em;color:rgba(201,168,76,0.32);padding:8px 13px 4px;border-top:1px solid rgba(255,255,255,0.05);}
+.dd-section:first-child{border-top:none;}
+.d-item{display:flex;align-items:center;gap:8px;padding:8px 13px;cursor:pointer;transition:background 0.15s;position:relative;}
+.d-item:hover{background:rgba(255,255,255,0.05);}
+.d-item.active{background:rgba(201,168,76,0.07);}
+.d-item.locked{opacity:0.7;}
+.d-emoji{font-size:1rem;width:22px;text-align:center;}
+.d-info{flex:1;}
+.d-name{font-size:0.65rem;letter-spacing:0.08em;color:rgba(255,255,255,0.82);font-family:var(--font-body);}
+.d-desc{font-size:0.47rem;letter-spacing:0.04em;color:rgba(255,255,255,0.32);margin-top:1px;font-family:var(--font-body);}
+.d-badge{font-size:0.42rem;letter-spacing:0.08em;padding:2px 7px;border-radius:10px;flex-shrink:0;}
+.badge-free{background:rgba(201,168,76,0.1);color:var(--accent);}
+.badge-premium{background:linear-gradient(90deg,#b8860b,#ff8c00);background-size:200%;animation:shimmer 2s linear infinite;color:#fff;font-weight:700;}
+.badge-owned{background:rgba(80,200,80,0.15);color:#88ff88;}
+.d-lock{font-size:0.7rem;margin-left:2px;opacity:0.5;}
+.d-item.active::after{content:'✦';position:absolute;right:10px;font-size:0.48rem;color:var(--accent);}
+@keyframes shimmer{0%{background-position:0%}100%{background-position:200%}}
+
+/* ── BALL ── */
+.ball-container{position:relative;z-index:3;cursor:pointer;margin:4px 0;}
+.ball{
+  width:clamp(200px,42vw,290px);height:clamp(200px,42vw,290px);
+  border-radius:50%;
+  position:relative;animation:float 4s ease-in-out infinite;
+  transition:box-shadow 0.6s,background 0.6s;
+}
+.ball-inner{position:absolute;inset:0;border-radius:50%;overflow:hidden;}
+/* Ball texture canvas */
+.ball-texture{position:absolute;inset:0;border-radius:50%;opacity:0.35;pointer-events:none;}
+.ball-shine{position:absolute;top:9%;left:17%;width:32%;height:20%;border-radius:50%;background:radial-gradient(ellipse,rgba(255,255,255,0.18) 0%,transparent 70%);transform:rotate(-30deg);}
+.ball-rim{position:absolute;inset:0;border-radius:50%;border:2px solid rgba(255,255,255,0.04);box-shadow:inset 0 -20px 60px rgba(0,0,0,0.8),inset 30px -30px 80px rgba(0,0,0,0.3);}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.ball.shaking{animation:shake 0.55s ease-in-out forwards;}
+@keyframes shake{0%,100%{transform:rotate(0deg) translateY(0)}10%{transform:rotate(-9deg) translateY(-6px)}20%{transform:rotate(9deg) translateY(-11px)}35%{transform:rotate(-6deg) translateY(-9px)}50%{transform:rotate(5deg) translateY(-13px)}65%{transform:rotate(-3deg) translateY(-7px)}80%{transform:rotate(2deg) translateY(-3px)}}
+.ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border-radius:50%;border:1px solid rgba(255,255,255,0.08);}
+.ring1{width:55%;height:55%;}
+.ring2{width:70%;height:70%;border-color:rgba(255,255,255,0.04);}
+.window{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:40%;height:40%;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;transition:background 0.6s;
+}
+.eight-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;transition:opacity 0.3s;}
+.eight-number{font-size:3rem;font-weight:900;color:white;font-family:var(--font-title);}
+.answer-face{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.7s ease;padding:5px;}
+.answer-face.visible{opacity:1;}
+.answer-text{font-size:0.5rem;font-weight:700;letter-spacing:0.06em;text-align:center;line-height:1.5;text-transform:uppercase;font-family:var(--font-answer);transition:font-family 0.3s,color 0.3s;}
+
+/* ── PREVIEW LOCK OVERLAY ── */
+.preview-overlay{
+  position:absolute;inset:0;border-radius:50%;
+  background:rgba(0,0,0,0.0);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:all 0.3s;z-index:5;
+  flex-direction:column;gap:6px;
+}
+.ball-container.previewing .preview-overlay{opacity:1;pointer-events:all;background:rgba(0,0,0,0.55);cursor:default;}
+.preview-lock-icon{font-size:1.8rem;}
+.preview-lock-text{font-size:0.45rem;letter-spacing:0.15em;color:rgba(255,255,255,0.8);font-family:var(--font-body);text-align:center;line-height:1.5;}
+.preview-buy-btn{
+  font-size:0.5rem;letter-spacing:0.12em;padding:5px 12px;
+  background:var(--accent);color:#000;font-family:var(--font-body);
+  border:none;border-radius:3px;cursor:pointer;margin-top:3px;font-weight:700;
+  transition:opacity 0.2s;
+}
+.preview-buy-btn:hover{opacity:0.85;}
+
+/* ── INPUT ── */
+.input-row{width:100%;display:flex;gap:7px;align-items:stretch;}
+.question-input{
+  flex:1;background:var(--surface);border:1px solid var(--border);border-radius:4px;
+  padding:11px 13px;font-family:var(--font-body);font-size:0.67rem;letter-spacing:0.07em;
+  color:var(--accent-light);outline:none;transition:border-color 0.3s,box-shadow 0.3s;
+}
+.question-input::placeholder{color:rgba(201,168,76,0.24);}
+.question-input:focus{border-color:rgba(201,168,76,0.5);box-shadow:0 0 14px rgba(201,168,76,0.06);}
+.icon-btn{
+  background:var(--surface);border:1px solid var(--border);border-radius:4px;
+  padding:0 12px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:0.95rem;transition:all 0.25s;flex-shrink:0;position:relative;color:rgba(201,168,76,0.6);
+}
+.icon-btn:hover{background:rgba(201,168,76,0.1);border-color:rgba(201,168,76,0.5);}
+.icon-btn .badge-dot{position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 5px var(--accent);}
+
+.ask-btn{
+  width:100%;background:transparent;border:1px solid var(--accent);color:var(--accent);
+  font-family:var(--font-title);font-size:0.6rem;letter-spacing:0.24em;text-transform:uppercase;
+  padding:10px;cursor:pointer;position:relative;overflow:hidden;transition:color 0.3s;
+  border-radius:4px;
+}
+.ask-btn::before{content:'';position:absolute;inset:0;background:var(--accent);transform:scaleX(0);transform-origin:left;transition:transform 0.3s;z-index:-1;}
+.ask-btn:hover{color:#000;}
+.ask-btn:hover::before{transform:scaleX(1);}
+.hint{font-size:0.46rem;letter-spacing:0.16em;color:rgba(201,168,76,0.22);}
+
+/* ── PANELS (shared) ── */
+.panel{
+  position:fixed;top:0;right:-105%;width:min(380px,96vw);height:100vh;
+  display:flex;flex-direction:column;z-index:100;
+  transition:right 0.35s cubic-bezier(0.4,0,0.2,1);
+  box-shadow:-20px 0 60px rgba(0,0,0,0.8);
+}
+.panel.open{right:0;}
+.panel-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid rgba(255,255,255,0.07);flex-shrink:0;}
+.panel-title{font-family:var(--font-title);font-size:0.72rem;letter-spacing:0.18em;color:var(--accent-light);}
+.panel-close{background:none;border:none;cursor:pointer;color:rgba(201,168,76,0.45);font-size:1.1rem;padding:3px 7px;transition:color 0.2s;}
+.panel-close:hover{color:var(--accent-light);}
+.panel-body{flex:1;overflow-y:auto;padding:12px 16px;}
+.panel-body::-webkit-scrollbar{width:3px;}
+.panel-body::-webkit-scrollbar-thumb{background:rgba(201,168,76,0.25);}
+.panel-footer{padding:10px 16px;border-top:1px solid rgba(255,255,255,0.06);flex-shrink:0;display:flex;justify-content:space-between;align-items:center;}
+
+/* LOG PANEL */
+#logPanel{background:#0a0710;}
+.log-filter-row{display:flex;gap:5px;padding:9px 14px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;flex-wrap:wrap;}
+.lfbtn{font-size:0.47rem;letter-spacing:0.1em;padding:4px 10px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);color:rgba(255,255,255,0.42);cursor:pointer;transition:all 0.2s;font-family:var(--font-body);}
+.lfbtn.active{background:rgba(201,168,76,0.13);border-color:var(--accent);color:var(--accent);}
+.log-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:200px;color:rgba(201,168,76,0.22);font-size:0.58rem;letter-spacing:0.18em;gap:10px;text-align:center;}
+.log-entry{padding:11px 0;border-bottom:1px solid rgba(255,255,255,0.04);animation:slideIn 0.22s ease forwards;}
+@keyframes slideIn{from{opacity:0;transform:translateX(8px);}to{opacity:1;transform:translateX(0);}}
+.log-entry:last-child{border-bottom:none;}
+.log-meta{display:flex;justify-content:space-between;margin-bottom:4px;}
+.log-persona{font-size:0.45rem;letter-spacing:0.1em;color:rgba(255,255,255,0.28);}
+.log-time{font-size:0.43rem;color:rgba(255,255,255,0.18);}
+.log-q{font-size:0.6rem;letter-spacing:0.05em;color:rgba(201,168,76,0.65);margin-bottom:3px;line-height:1.4;}
+.log-a{font-size:0.58rem;letter-spacing:0.05em;font-style:italic;line-height:1.4;}
+.log-a.pos{color:#80ffaa;} .log-a.neu{color:#c8aaff;} .log-a.neg{color:#ff8080;}
+.log-total{font-size:0.48rem;letter-spacing:0.1em;color:rgba(201,168,76,0.32);}
+.log-clear{font-size:0.48rem;letter-spacing:0.1em;padding:4px 10px;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.18);border-radius:3px;color:rgba(255,100,100,0.55);cursor:pointer;font-family:var(--font-body);transition:all 0.2s;}
+.log-clear:hover{background:rgba(255,80,80,0.14);color:#ff8080;}
+
+/* STORE PANEL */
+#storePanel{background:#080610;}
+.store-hero{
+  background:linear-gradient(135deg,rgba(201,168,76,0.08),rgba(150,50,255,0.08));
+  border:1px solid rgba(201,168,76,0.15);border-radius:6px;
+  padding:14px;margin-bottom:14px;text-align:center;
+}
+.store-hero-title{font-family:var(--font-title);font-size:0.8rem;letter-spacing:0.15em;color:var(--accent-light);margin-bottom:4px;}
+.store-hero-sub{font-size:0.5rem;letter-spacing:0.08em;color:rgba(255,255,255,0.4);margin-bottom:10px;line-height:1.6;}
+.bundle-row{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;}
+.bundle-card{
+  border:1px solid rgba(201,168,76,0.3);border-radius:5px;padding:10px 12px;text-align:center;
+  cursor:pointer;transition:all 0.25s;flex:1;min-width:80px;max-width:130px;
+  background:rgba(255,255,255,0.02);position:relative;overflow:hidden;
+}
+.bundle-card:hover{background:rgba(201,168,76,0.06);transform:translateY(-1px);}
+.bundle-card.featured{border-color:var(--accent);background:rgba(201,168,76,0.04);}
+.bundle-card.featured::before{content:'BEST VALUE';position:absolute;top:0;left:0;right:0;background:var(--accent);color:#000;font-size:0.38rem;letter-spacing:0.15em;padding:2px;font-family:var(--font-body);font-weight:700;}
+.bundle-card.featured .bundle-price{margin-top:8px;}
+.bundle-name{font-size:0.55rem;letter-spacing:0.1em;color:rgba(255,255,255,0.7);margin-bottom:3px;}
+.bundle-price{font-size:0.95rem;color:var(--accent-light);font-family:var(--font-title);font-weight:700;}
+.bundle-period{font-size:0.42rem;color:rgba(255,255,255,0.35);}
+.bundle-desc{font-size:0.42rem;color:rgba(255,255,255,0.3);margin-top:4px;line-height:1.5;}
+.bundle-btn{
+  display:block;width:100%;margin-top:7px;padding:5px;
+  background:var(--accent);color:#000;font-family:var(--font-body);
+  font-size:0.45rem;letter-spacing:0.12em;border:none;border-radius:3px;cursor:pointer;font-weight:700;
+  transition:opacity 0.2s;
+}
+.bundle-btn:hover{opacity:0.85;}
+.bundle-btn.owned{background:rgba(80,200,80,0.15);color:#88ff88;border:1px solid rgba(80,200,80,0.2);}
+
+.store-section{font-size:0.44rem;letter-spacing:0.35em;color:rgba(201,168,76,0.32);margin:14px 0 8px;text-transform:uppercase;}
+.store-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.store-item{
+  border:1px solid rgba(255,255,255,0.08);border-radius:5px;padding:10px;
+  cursor:pointer;transition:all 0.2s;background:rgba(255,255,255,0.02);
+  position:relative;overflow:hidden;
+}
+.store-item:hover{background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.15);}
+.store-item.owned{border-color:rgba(80,200,80,0.25);}
+.store-item-emoji{font-size:1.5rem;margin-bottom:5px;display:block;}
+.store-item-name{font-size:0.58rem;letter-spacing:0.07em;color:rgba(255,255,255,0.78);margin-bottom:2px;font-family:var(--font-body);}
+.store-item-desc{font-size:0.43rem;color:rgba(255,255,255,0.3);line-height:1.4;margin-bottom:6px;}
+.store-item-price{font-size:0.55rem;color:var(--accent);font-family:var(--font-body);}
+.store-item-price.free{color:#88ff88;}
+.store-item-price.owned-label{color:#88ff88;}
+.si-buy-btn{
+  display:block;width:100%;margin-top:5px;padding:4px;
+  background:rgba(201,168,76,0.15);color:var(--accent);
+  font-family:var(--font-body);font-size:0.43rem;letter-spacing:0.1em;
+  border:1px solid rgba(201,168,76,0.25);border-radius:3px;cursor:pointer;transition:all 0.2s;
+}
+.si-buy-btn:hover{background:rgba(201,168,76,0.25);}
+.si-buy-btn.owned{background:rgba(80,200,80,0.1);border-color:rgba(80,200,80,0.2);color:#88ff88;cursor:default;}
+
+/* Theme preview swatch */
+.theme-swatch{
+  width:100%;height:28px;border-radius:3px;margin-bottom:5px;
+  display:flex;align-items:center;justify-content:center;font-size:0.7rem;gap:3px;
+  border:1px solid rgba(255,255,255,0.1);
+}
+
+/* FEEDBACK PANEL */
+#feedbackPanel{background:#060a08;}
+.feedback-form{display:flex;flex-direction:column;gap:10px;}
+.fb-label{font-size:0.52rem;letter-spacing:0.12em;color:rgba(201,168,76,0.6);margin-bottom:3px;display:block;}
+.fb-select,.fb-input,.fb-textarea{
+  width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);
+  border-radius:3px;padding:9px 11px;color:rgba(255,255,255,0.8);
+  font-family:var(--font-body);font-size:0.62rem;letter-spacing:0.05em;outline:none;
+  transition:border-color 0.25s;
+}
+.fb-select{appearance:none;cursor:pointer;}
+.fb-select option{background:#0e0810;}
+.fb-input:focus,.fb-select:focus,.fb-textarea:focus{border-color:rgba(201,168,76,0.4);}
+.fb-textarea{min-height:90px;resize:vertical;line-height:1.5;}
+.fb-submit{
+  background:var(--accent);color:#000;font-family:var(--font-title);
+  font-size:0.6rem;letter-spacing:0.2em;border:none;border-radius:3px;
+  padding:10px;cursor:pointer;transition:opacity 0.2s;font-weight:700;
+}
+.fb-submit:hover{opacity:0.85;}
+.fb-success{text-align:center;padding:20px;color:rgba(80,255,120,0.8);font-size:0.62rem;letter-spacing:0.12em;line-height:1.8;display:none;}
+
+/* OVERLAY */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:90;opacity:0;pointer-events:none;transition:opacity 0.35s;}
+.overlay.open{opacity:1;pointer-events:all;}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:rgba(20,15,25,0.95);border:1px solid var(--accent);
+  border-radius:20px;padding:9px 20px;font-size:0.58rem;letter-spacing:0.1em;
+  color:var(--accent-light);z-index:200;transition:transform 0.35s,opacity 0.35s;opacity:0;
+  white-space:nowrap;box-shadow:0 8px 30px rgba(0,0,0,0.6);
+}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+/* PARTICLES */
+.particle{position:fixed;width:4px;height:4px;border-radius:50%;pointer-events:none;z-index:50;}
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+<div class="overlay" id="overlay" onclick="closeAllPanels()"></div>
+<div class="toast" id="toast"></div>
+
+<!-- ── PANELS ── -->
+<!-- Log -->
+<div class="panel" id="logPanel">
+  <div class="panel-header"><span class="panel-title">✦ Reading Log</span><button class="panel-close" onclick="closePanel('logPanel')">✕</button></div>
+  <div class="log-filter-row">
+    <button class="lfbtn active" onclick="filterLog('all',this)">All</button>
+    <button class="lfbtn" onclick="filterLog('pos',this)">✓ Positive</button>
+    <button class="lfbtn" onclick="filterLog('neu',this)">~ Neutral</button>
+    <button class="lfbtn" onclick="filterLog('neg',this)">✗ Negative</button>
+  </div>
+  <div class="panel-body" id="logEntries"><div class="log-empty">🔮<br>No readings yet.</div></div>
+  <div class="panel-footer"><span class="log-total" id="logTotal">0 readings</span><button class="log-clear" onclick="clearLog()">Clear All</button></div>
+</div>
+
+<!-- Store -->
+<div class="panel" id="storePanel">
+  <div class="panel-header"><span class="panel-title">★ Oracle Store</span><button class="panel-close" onclick="closePanel('storePanel')">✕</button></div>
+  <div class="panel-body" id="storeBody"></div>
+</div>
+
+<!-- Feedback -->
+<div class="panel" id="feedbackPanel">
+  <div class="panel-header"><span class="panel-title">💬 Feedback</span><button class="panel-close" onclick="closePanel('feedbackPanel')">✕</button></div>
+  <div class="panel-body">
+    <div class="feedback-form" id="feedbackForm">
+      <div>
+        <label class="fb-label">Category</label>
+        <select class="fb-select" id="fbCategory">
+          <option value="">— Select —</option>
+          <option>🐛 Bug Report</option>
+          <option>💡 New Personality Idea</option>
+          <option>🎨 Theme Request</option>
+          <option>💰 Pricing Feedback</option>
+          <option>⭐ General Feedback</option>
+          <option>❤️ Compliment (we love these)</option>
+        </select>
+      </div>
+      <div>
+        <label class="fb-label">Your Name (optional)</label>
+        <input class="fb-input" id="fbName" placeholder="Anonymous Oracle Seeker" type="text"/>
+      </div>
+      <div>
+        <label class="fb-label">Your Message</label>
+        <textarea class="fb-textarea" id="fbMessage" placeholder="Tell us what you think, suggest a personality, report a bug..."></textarea>
+      </div>
+      <div>
+        <label class="fb-label">Email (optional, for replies)</label>
+        <input class="fb-input" id="fbEmail" placeholder="your@email.com" type="email"/>
+      </div>
+      <button class="fb-submit" onclick="submitFeedback()">✦ Send Feedback</button>
+    </div>
+    <div class="fb-success" id="fbSuccess">✦<br><br>Thank you for your feedback!<br><br>Every suggestion is read and considered.<br>The Oracle is grateful for your wisdom.<br><br>🔮</div>
+  </div>
+</div>
+
+<!-- ── HEADER ── -->
+<div class="header">
+  <span class="header-logo">8-Ball Oracle</span>
+  <div class="header-actions">
+    <button class="hbtn" onclick="openPanel('storePanel')">★ Store</button>
+    <button class="hbtn icon" onclick="openPanel('feedbackPanel')" title="Feedback">💬</button>
+    <button class="hbtn icon" id="volBtn" onclick="toggleSound()" title="Sound">🔊</button>
+  </div>
+</div>
+
+<!-- ── MAIN ── -->
+<div class="main">
+  <div class="title-area">
+    <h1 id="titleText">8-Ball Oracle</h1>
+    <p class="tagline" id="taglineText">The cosmos speaks in riddles</p>
+  </div>
+
+  <!-- Dropdown -->
+  <div class="selector-wrap" id="selectorWrap">
+    <div class="selector-trigger" id="selectorTrigger" onclick="toggleDropdown()">
+      <span class="sel-emoji" id="selEmoji">🔮</span>
+      <span class="sel-name" id="selName">Oracle</span>
+      <span class="sel-tier tier-free" id="selTier">FREE</span>
+      <span class="sel-arrow">▾</span>
+    </div>
+    <div class="dropdown-menu" id="dropdownMenu"></div>
+  </div>
+
+  <!-- Ball -->
+  <div class="ball-container" id="ballContainer" onclick="ballClicked()">
+    <div class="ball" id="ball">
+      <div class="ball-inner" id="ballInner">
+        <canvas class="ball-texture" id="ballCanvas"></canvas>
+        <div class="ball-shine"></div>
+        <div class="ball-rim"></div>
+        <div class="ring ring2"></div>
+        <div class="ring ring1"></div>
+        <div class="window" id="ballWindow">
+          <div class="eight-face" id="eightFace"><span class="eight-number" id="eightNum">8</span></div>
+          <div class="answer-face" id="answerFace"><span class="answer-text" id="answerText"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="preview-overlay" id="previewOverlay">
+      <span class="preview-lock-icon">🔒</span>
+      <span class="preview-lock-text">Unlock to ask questions<br>with this personality</span>
+      <button class="preview-buy-btn" onclick="openStoreForCurrent()">Unlock — $1.29 CAD</button>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="input-row">
+    <input type="text" class="question-input" id="questionInput" placeholder="Ask your question..."/>
+    <button class="icon-btn" id="logBtn" onclick="openPanel('logPanel')" title="Reading Log">📜</button>
+    <button class="icon-btn" onclick="openPanel('storePanel')" title="Store">★</button>
+  </div>
+  <button class="ask-btn" id="askBtn" onclick="askOracle()">Consult the Oracle</button>
+  <p class="hint">tap ball · enter · shake phone</p>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════════
+
+const PERSONALITIES = {
+  oracle:{
+    name:'Oracle',emoji:'🔮',desc:'Classic cosmic wisdom',tier:'free',pack:null,
+    title:'8-Ball Oracle',tagline:'The cosmos speaks in riddles',btnLabel:'Consult the Oracle',
+    bg:'#0a0508',ballBg1:'#1a1a2e',ballBg2:'#050308',ballGlow:'rgba(80,20,180,0.55)',
+    accent:'#c9a84c',accentLight:'#f0d080',answerColor:'#c8aaff',windowBg:'#0a0020',
+    windowGlow:'rgba(120,60,255,0.35)',eightColor:'rgba(150,100,255,0.9)',
+    ballTexture:'starfield',
+    font:"'Cinzel',serif",answerFont:"'Cinzel',serif",eightSymbol:'8',
+    positive:['It is certain','Without doubt','Yes, definitely','You may rely on it','As I see it, yes','Most likely','Outlook good','Signs point to yes','Yes'],
+    neutral:['Reply hazy, try again','Ask again later','Better not tell you now','Cannot predict now','Concentrate and ask again'],
+    negative:["Don't count on it","My reply is no","My sources say no","Outlook not so good","Very doubtful"],
+    shakeS:'mystic',revealS:'chime',
+  },
+  sarcastic:{
+    name:'Sarcastic',emoji:'😏',desc:'Eye-rolls & reluctant truths',tier:'premium',pack:'chaos',
+    title:'Obviously 8',tagline:'I cannot believe you need to ask',btnLabel:'Fine, Ask Away',
+    bg:'#0d0a00',ballBg1:'#2a1500',ballBg2:'#0a0400',ballGlow:'rgba(200,80,0,0.5)',
+    accent:'#e07010',accentLight:'#ffaa40',answerColor:'#ffcc66',windowBg:'#180a00',
+    windowGlow:'rgba(200,80,0,0.4)',eightColor:'rgba(255,150,50,0.9)',
+    ballTexture:'cracks',
+    font:"'Permanent Marker',cursive",answerFont:"'Permanent Marker',cursive",eightSymbol:'🙄',
+    positive:['Wow, really? Yes.','Sure, why not','Obviously yes, genius','Groundbreaking — yes','Yep. Shocking.','Yeah yeah yeah','I mean... yes?','Obviously','Sure thing, champ'],
+    neutral:["Oh wow I have NO idea 🙄","Try again, I was distracted","Come back when serious","Still thinking. Jk I don't care.","Honestly? No comment."],
+    negative:['Lol no','Ha. No.','Absolutely not','Nope, tough luck','Good luck with that'],
+    shakeS:'thud',revealS:'bloop',
+  },
+  hype:{
+    name:'Hype Man',emoji:'🎉',desc:'ALL CAPS ENERGY BESTIE!!!',tier:'premium',pack:'chaos',
+    title:'HYPE 8 !!!',tagline:'YOU GOT THIS!!!! 🔥🔥🔥',btnLabel:"LET'S GOOO 🚀",
+    bg:'#03000d',ballBg1:'#120030',ballBg2:'#03000f',ballGlow:'rgba(255,0,220,0.55)',
+    accent:'#ff00cc',accentLight:'#ff88ff',answerColor:'#00ffcc',windowBg:'#0a001f',
+    windowGlow:'rgba(255,0,200,0.4)',eightColor:'rgba(0,255,200,0.9)',
+    ballTexture:'confetti',
+    font:"'VT323',monospace",answerFont:"'VT323',monospace",eightSymbol:'!!',
+    positive:['YESSS QUEEN!!!','ABSOLUTELY SLAY!!!','OH MY GOD YES!!!','100% DO IT!!!','MANIFEST IT!!!','LFG!!!','THIS IS YOUR SIGN!!!','YOU ALREADY KNOW!!!','OBVIOUSLY YES BESTIE!!!'],
+    neutral:['IYKYK 👀','THE UNIVERSE IS COOKING','TRUST THE PROCESS BRO','VIBES ARE PENDING','MORE INFO NEEDED, KING'],
+    negative:['NAH FAM','NOT TODAY','PLOT TWIST: NO','HARD PASS','THE TIMELINE SAYS NO'],
+    shakeS:'zap',revealS:'fanfare',
+  },
+  counsellor:{
+    name:'Counsellor',emoji:'🛋️',desc:'Reflective & professionally gentle',tier:'premium',pack:'wisdom',
+    title:'The Listener',tagline:'How does that question make you feel?',btnLabel:'Share with the Ball',
+    bg:'#030a08',ballBg1:'#081a10',ballBg2:'#020604',ballGlow:'rgba(20,130,80,0.5)',
+    accent:'#4ab890',accentLight:'#80ddbb',answerColor:'#a0e8cc',windowBg:'#021008',
+    windowGlow:'rgba(20,180,100,0.3)',eightColor:'rgba(80,220,160,0.9)',
+    ballTexture:'waves',
+    font:"'Playfair Display',serif",answerFont:"'Playfair Display',serif",eightSymbol:'∞',
+    positive:['It seems you already know','Your instincts are sound','Trust that feeling','There is wisdom in proceeding','You are ready for this','This aligns with your values','Growth awaits you here','You have more support than you know','Yes — be gentle with yourself'],
+    neutral:["What do you hope the answer is?","Let's sit with that uncertainty","The answer lives inside you","Perhaps the question matters more","How long have you wondered this?"],
+    negative:["This path may not serve you","Your hesitation is telling you something","It's okay to pause here","Consider what you're protecting","Not yet — and that's okay"],
+    shakeS:'soft',revealS:'gentle',
+  },
+  pirate:{
+    name:'Pirate',emoji:'🏴‍☠️',desc:'Davy Jones speaks from the deep',tier:'premium',pack:'chaos',
+    title:'The Cursed 8',tagline:'Ye dare consult the deep?',btnLabel:'Ask Davy Jones',
+    bg:'#020508',ballBg1:'#051828',ballBg2:'#010308',ballGlow:'rgba(0,80,160,0.55)',
+    accent:'#4488cc',accentLight:'#88ccff',answerColor:'#cce4ff',windowBg:'#020a1a',
+    windowGlow:'rgba(0,100,200,0.3)',eightColor:'rgba(100,180,255,0.9)',
+    ballTexture:'waves',
+    font:"'Cinzel Decorative',serif",answerFont:"'Cinzel',serif",eightSymbol:'☠',
+    positive:["Aye, the winds be favorable!","By Davy's beard — YES!","Sail forth, ye scallywag!","The tides say AYE!","Shiver me timbers — yes!","Arr, ye stars align!","Fortune favors the bold!","The kraken sleeps — proceed!","YARR! It be so!"],
+    neutral:["The fog hides yer answer","Even the compass be spinnin'","The sea be calm... too calm","Ask again when the moon rises","Me crystal ball be foggy"],
+    negative:["Nay, walk the plank","The Kraken stirs!","The tides be against ye","By the black spot — NO","Batten the hatches, NO"],
+    shakeS:'splash',revealS:'cannon',
+  },
+  robot:{
+    name:'Robot',emoji:'🤖',desc:'Cold logic & error codes',tier:'premium',pack:'chaos',
+    title:'UNIT-8',tagline:'PROCESSING YOUR QUERY...',btnLabel:'EXECUTE QUERY',
+    bg:'#000a03',ballBg1:'#001a08',ballBg2:'#000402',ballGlow:'rgba(0,255,80,0.35)',
+    accent:'#00ff66',accentLight:'#88ffcc',answerColor:'#00ff88',windowBg:'#000c04',
+    windowGlow:'rgba(0,255,100,0.3)',eightColor:'rgba(0,255,130,0.9)',
+    ballTexture:'grid',
+    font:"'VT323',monospace",answerFont:"'VT323',monospace",eightSymbol:'01',
+    positive:['AFFIRMATIVE','PROBABILITY: 94.7%','RESULT: YES','APPROVED','SIMULATION: YES','CALCULATING... YES','QUERY: TRUE','RECOMMENDED','DATA SUPPORTS YES'],
+    neutral:['INSUFFICIENT DATA','ERROR: RETRY','COMPUTING...','TIMEOUT','REBOOTING...'],
+    negative:['NEGATIVE','ERROR 404: NO','RESULT: FALSE','DENIED','SIMULATION: FAILURE'],
+    shakeS:'electric',revealS:'beep',
+  },
+  shakespeare:{
+    name:'Shakespeare',emoji:'🎭',desc:'Ancient verse from the Bard',tier:'premium',pack:'wisdom',
+    title:'The Bard Speaks',tagline:"All the world's a stage — ask thy question",btnLabel:'Beseech the Bard',
+    bg:'#06040a',ballBg1:'#180a10',ballBg2:'#060208',ballGlow:'rgba(160,60,120,0.55)',
+    accent:'#d4a0c0',accentLight:'#ffccee',answerColor:'#ffd9f0',windowBg:'#100818',
+    windowGlow:'rgba(180,60,140,0.3)',eightColor:'rgba(255,180,220,0.9)',
+    ballTexture:'velvet',
+    font:"'Cinzel',serif",answerFont:"'Playfair Display',serif",eightSymbol:'⚜',
+    positive:["Aye, 'tis written in the stars!","Hark! Good fortune smiles upon thee","By mine troth — yes, most certainly","The fates have spoken it so","Verily, proceed with haste","Such sweet accord — yes, forsooth!","The auguries speak well of this","As sure as Juliet loved Romeo — yes","Go forth! The omens favor thee"],
+    neutral:["The course of fate ne'er did run smooth","Methinks the answer doth hide","To be or not to be answered...","The future is yet unwritten, dear soul","Hark, the stars are silent tonight"],
+    negative:["Alas, poor questioner — 'tis no","Something is rotten in the state of yes","The die is cast against thee","Nay, nay, a thousand times nay","Parting is such sorrow — but no"],
+    shakeS:'mystic',revealS:'chime',
+  },
+  villain:{
+    name:'Super Villain',emoji:'😈',desc:'Mwahahaha... excellent question',tier:'premium',pack:'chaos',
+    title:'DOOM-8',tagline:'Your fate is MINE to decide',btnLabel:'Petition Your Overlord',
+    bg:'#080003',ballBg1:'#220010',ballBg2:'#070002',ballGlow:'rgba(220,0,80,0.55)',
+    accent:'#cc0044',accentLight:'#ff4488',answerColor:'#ff88bb',windowBg:'#160008',
+    windowGlow:'rgba(200,0,60,0.4)',eightColor:'rgba(255,80,130,0.9)',
+    ballTexture:'lightning',
+    font:"'VT323',monospace",answerFont:"'VT323',monospace",eightSymbol:'👁',
+    positive:['EXCELLENT. PROCEED.','YOUR PLAN IS... ACCEPTABLE','MWAHAHAHA — YES!','I SHALL ALLOW IT','EVEN I MUST ADMIT — YES','YOUR SCHEME HAS MERIT','SO IT SHALL BE DONE','CONSIDER IT APPROVED, MINION','YES. FOR NOW.'],
+    neutral:['SILENCE WHILE I DELIBERATE...','YOUR QUESTION BORES ME... FOR NOW','I HAVE NOT DECIDED YOUR FATE YET','RETURN WHEN THE MOON IS RED','MY CRYSTAL SKULL IS CLOUDED'],
+    negative:['SILENCE! THE ANSWER IS NO!','FOILED AGAIN — NO!','YOUR PLAN DISPLEASES ME','DENIED. FOREVER.','MWAHAHAHA... NO.'],
+    shakeS:'zap',revealS:'bloop',
+  },
+  ghost:{
+    name:'Victorian Ghost',emoji:'👻',desc:'Whispers from beyond the veil',tier:'premium',pack:'wisdom',
+    title:'The Specter',tagline:'I have been waiting... so long...',btnLabel:'Summon the Spirit',
+    bg:'#020408',ballBg1:'#080f16',ballBg2:'#010305',ballGlow:'rgba(100,180,230,0.4)',
+    accent:'#88bbdd',accentLight:'#cceeff',answerColor:'#ddeeff',windowBg:'#030810',
+    windowGlow:'rgba(100,180,230,0.25)',eightColor:'rgba(180,220,255,0.9)',
+    ballTexture:'mist',
+    font:"'Playfair Display',serif",answerFont:"'Playfair Display',serif",eightSymbol:'†',
+    positive:['...yes... I remember now...','The living should proceed...','I once said yes to the same...','From beyond — yes, dearest...','The cold wind says... yes...','My portrait nods... proceed...','Even in death I can see... yes...','The candles flicker... yes...','I whisper through the walls... yes...'],
+    neutral:['...the fog is thick tonight...','...I cannot reach through today...','...the connection fades...','...ask when the clock strikes three...','...the veil is too thick...'],
+    negative:['...no... oh god... no...','...I made that mistake once...','...the darkness warns against it...','...I shiver and say no...','...even death could not fix that...'],
+    shakeS:'soft',revealS:'gentle',
+  },
+  sensei:{
+    name:'Ancient Sensei',emoji:'🧘',desc:'Profound wisdom, confusing delivery',tier:'premium',pack:'wisdom',
+    title:'The Way of Eight',tagline:'The question already contains the answer',btnLabel:"Seek the Master's Wisdom",
+    bg:'#050801',ballBg1:'#0d1404',ballBg2:'#020400',ballGlow:'rgba(120,180,20,0.45)',
+    accent:'#88bb22',accentLight:'#bbee66',answerColor:'#ddf088',windowBg:'#040700',
+    windowGlow:'rgba(120,180,20,0.3)',eightColor:'rgba(180,230,80,0.9)',
+    ballTexture:'bamboo',
+    font:"'Cinzel',serif",answerFont:"'Playfair Display',serif",eightSymbol:'☯',
+    positive:['The river flows where it will.','When the student is ready, yes appears.','Even the mountain says yes sometimes.','The bamboo bends but does not break.','One who asks already knows.','The answer is yes; the journey was the question.','Your cup is empty — fill it with yes.','The crane has landed. Proceed.','So it is. The cherry blossom falls upward.'],
+    neutral:['The pebble knows not which way the stream flows.','Silence has its own answer.','The fog does not hurry, yet it arrives.','Ask not the mirror — ask the candle.','Even the wise man waits for the third sunrise.'],
+    negative:['The arrow shot in haste misses.','Even the ox knows when not to pull.','The door that opens easily leads nowhere.','The wise man hesitates here.','No wind serves the ship without direction.'],
+    shakeS:'soft',revealS:'gentle',
+  },
+  gossip:{
+    name:'Gossip Queen',emoji:'💅',desc:'Ok honey spill the tea ☕',tier:'premium',pack:'chaos',
+    title:'The Tea ☕',tagline:'Ok so I heard from a VERY reliable source...',btnLabel:'Spill the Tea, Bestie',
+    bg:'#0a0010',ballBg1:'#200035',ballBg2:'#080012',ballGlow:'rgba(200,50,255,0.5)',
+    accent:'#dd44ff',accentLight:'#ee88ff',answerColor:'#ffbbff',windowBg:'#100022',
+    windowGlow:'rgba(200,50,255,0.3)',eightColor:'rgba(255,140,255,0.9)',
+    ballTexture:'glitter',
+    font:"'Permanent Marker',cursive",answerFont:"'Permanent Marker',cursive",eightSymbol:'☕',
+    positive:['Ok YESSS and that is the tea!','Bestie the answer is yes and we BEEN knew','Oh honey, absolutely yes 💅','Girl YES. Period.','That is so real and valid, yes!','Screaming crying throwing up — YES','Oh it is GIVING yes, babe','Not me manifesting this for you — YES!','The cards say yes and honestly same'],
+    neutral:["Ok so I heard two different things...","Hmm the source is... unreliable babe","The universe is being SO messy rn","I am living for the drama of not knowing","Ok so this could go either way"],
+    negative:['Bestie... no. And I say this with love.','Girl the red flags are giving NO','That is a no from me and the collective','Ok so my source says absolutely not','We are not doing this. No. Ew. Bye.'],
+    shakeS:'zap',revealS:'fanfare',
+  },
+  genie:{
+    name:'Genie',emoji:'🧞',desc:'Your wish is my... maybe',tier:'premium',pack:'wisdom',
+    title:'The Lamp Speaks',tagline:'Three questions remain. Use them wisely.',btnLabel:'Rub the Lamp',
+    bg:'#050a00',ballBg1:'#0a1800',ballBg2:'#020500',ballGlow:'rgba(255,180,0,0.5)',
+    accent:'#ffaa00',accentLight:'#ffdd66',answerColor:'#ffe08a',windowBg:'#080f00',
+    windowGlow:'rgba(255,180,0,0.3)',eightColor:'rgba(255,200,80,0.9)',
+    ballTexture:'gold',
+    font:"'Cinzel Decorative',serif",answerFont:"'Cinzel',serif",eightSymbol:'✨',
+    positive:['YOUR WISH IS GRANTED!','By the power of the lamp — YES!','As you wish, master!','It shall be done — YES!','Your desire aligns with fate!','The lamp glows golden — yes!','Ten thousand years gives you... YES!','Done! In a flash of golden light!','I have granted greater wishes — and yes!'],
+    neutral:['That wish is... complicated.','I need more specifics, master.','The lamp flickers uncertainly...','This wish requires a caveat...','Even genies have limits — ask again.'],
+    negative:['I cannot grant that wish, master.','The lamp dims — no.','Some wishes were never meant to be.','Even a genie must say no to this.','That wish would go badly. Trust me.'],
+    shakeS:'mystic',revealS:'fanfare',
+  },
+  // ── NEW PREMIUM ──────────────────────────────────────────────
+  fortunecookie:{
+    name:'Fortune Cookie',emoji:'🥠',desc:'Cryptic one-liners that sound deep',tier:'premium',pack:'wisdom',
+    title:'The Cookie Speaks',tagline:'Crack open your destiny',btnLabel:'Break the Cookie',
+    bg:'#080600',ballBg1:'#1a1200',ballBg2:'#060400',ballGlow:'rgba(220,160,0,0.45)',
+    accent:'#ddaa00',accentLight:'#ffdd66',answerColor:'#ffe8aa',windowBg:'#100c00',
+    windowGlow:'rgba(220,160,0,0.3)',eightColor:'rgba(255,200,100,0.9)',
+    ballTexture:'paper',
+    font:"'Playfair Display',serif",answerFont:"'Playfair Display',serif",eightSymbol:'🥠',
+    positive:['He who hesitates is sometimes right — but not today.','The bamboo that bends is stronger than the oak. Bend toward yes.','A closed mouth gathers no feet. Open it and say yes.','Your lucky numbers are all of them today.','Opportunity does not knock twice — answer the door.','The fortune you seek is in another cookie. This one says yes.','A smile is your personal welcome mat. Yes!','Do not wait. The time will never be just right.','What you seek is seeking you.'],
+    neutral:["Man who chases two rabbits catches neither. Clarify.","The early bird gets the worm. The late bird gets a different worm. Unclear.","Ignore previous fortune. Or don't. Up to you.","This cookie contains no fortune. That is your fortune.","A wise man knows what he does not know. Neither do we."],
+    negative:['Better to remain silent than to remove all doubt.','Every flower blooms in its own time. This is not your time.','He who laughs last did not get it. Nor will you.','Patience is a virtue. You will need much of it.','The stars are not quite aligned. Perhaps after dinner.'],
+    shakeS:'soft',revealS:'chime',
+  },
+  boomerdad:{
+    name:'Boomer Dad',emoji:'👴',desc:'Back in my day, unsolicited advice',tier:'premium',pack:'chaos',
+    title:'Dad Ball',tagline:"Back in my day, we didn't need an oracle",btnLabel:'Ask Your Father',
+    bg:'#030608',ballBg1:'#060e18',ballBg2:'#020408',ballGlow:'rgba(50,100,180,0.4)',
+    accent:'#6688bb',accentLight:'#99bbdd',answerColor:'#bbccee',windowBg:'#040810',
+    windowGlow:'rgba(50,100,180,0.25)',eightColor:'rgba(120,160,220,0.9)',
+    ballTexture:'woodgrain',
+    font:"'Playfair Display',serif",answerFont:"'Playfair Display',serif",eightSymbol:'🍺',
+    positive:["Yes, and back in my day we did it uphill both ways.","Well, I suppose so. Not how we did it in '78, but fine.","Yes! And it only costs a nickel if you know the right people.","Go for it. We didn't have options like this. You kids have it easy.","Yes! Now let me tell you about when I walked to school in the snow...","Sure, and I'm sure it'll be on the internet or whatever.","Good call. Your grandfather would've agreed. God rest his soul.","Yes. And call your mother.","Yep! Now pull up your pants."],
+    neutral:["Well now, in my day we just figured it out without asking.","Let me think... actually no, let me tell you a story first.","Hmm. What does the newspaper say about this?","I don't know. Ask your mother.","Well, this reminds me of 1987..."],
+    negative:["No, and frankly I'm surprised you asked.","No. And you know what, we turned out fine without it.","Back in my day the answer was always no and we liked it.","No! We had one ball and we shared it. Uphill. Both ways.","Absolutely not. And turn off the lights when you leave."],
+    shakeS:'thud',revealS:'bloop',
+  },
+  passiveaggressive:{
+    name:'Passive Aggressive',emoji:'🤦',desc:"Oh sure, it's FINE, really",tier:'premium',pack:'chaos',
+    title:'The Sigh',tagline:"No no, it's fine. I'm fine. Everything is fine.",btnLabel:"Go Ahead, Ask",
+    bg:'#080508',ballBg1:'#150a18',ballBg2:'#060308',ballGlow:'rgba(160,80,200,0.4)',
+    accent:'#aa66cc',accentLight:'#cc99ee',answerColor:'#ddbbff',windowBg:'#0e0615',
+    windowGlow:'rgba(150,80,180,0.25)',eightColor:'rgba(180,120,230,0.9)',
+    ballTexture:'velvet',
+    font:"'Permanent Marker',cursive",answerFont:"'Permanent Marker',cursive",eightSymbol:'🙃',
+    positive:["Yes. Fine. Whatever you want. As usual.","Sure, go ahead. It's not like I had other plans or anything.","Yes. I'm thrilled for you. Truly.","Oh yes, definitely. I'll just sit here then. It's fine.","Sure! I'm sure this is a great idea. For you.","Yes, obviously. I wouldn't dream of disagreeing.","Go ahead. I'll manage. I always do.","Yes. That's great. Really. I mean it.","Oh yes absolutely, don't mind me."],
+    neutral:["Oh I don't know. But really, what would I know?","It's whatever. Doesn't affect me. At all.","I'm not upset, I just think it's interesting.","No no, you decide. You always do anyway.","I'm sure it'll work out. For you."],
+    negative:["No. But it's fine. Forget I said anything.","No. Not that my opinion matters.","Nope. But don't worry about me. I'll be fine.","No, and really I'm not surprised.","No. But you do you. You always do."],
+    shakeS:'soft',revealS:'bloop',
+  },
+  genZ:{
+    name:'Gen Z',emoji:'🧊',desc:'No cap, this giving main character',tier:'premium',pack:'chaos',
+    title:'No Cap Oracle',tagline:'bestie this is lowkey giving divine energy',btnLabel:'ask bestie 💀',
+    bg:'#030008',ballBg1:'#0a0020',ballBg2:'#020008',ballGlow:'rgba(100,0,255,0.5)',
+    accent:'#8800ff',accentLight:'#cc66ff',answerColor:'#dd99ff',windowBg:'#07001a',
+    windowGlow:'rgba(100,0,255,0.3)',eightColor:'rgba(180,100,255,0.9)',
+    ballTexture:'glitter',
+    font:"'VT323',monospace",answerFont:"'VT323',monospace",eightSymbol:'💀',
+    positive:['no cap that is SO valid yes','slay bestie the answer is yes 💅','it is literally giving yes energy','not the oracle saying YES i am deceased','ok but yes and i am here for it','periodt. yes.','bestie yes and that is the tea','understood the assignment: yes','main character moment: yes'],
+    neutral:['ok so the vibe is unclear rn','it is giving mixed signals ngl','understood the assignment but forgot what it was','ok but like what even is the question','the oracle is on its flop era rn'],
+    negative:['bestie no and i say this with love 💀','the ick. the answer is the ick. no.','not it bestie. not it at all.','this is giving red flag behavior. no.','ratio + no'],
+    shakeS:'zap',revealS:'fanfare',
+  },
+  gymbro:{
+    name:'Gym Bro',emoji:'🏋️',desc:'Everything is a gains metaphor',tier:'premium',pack:'chaos',
+    title:'GAINS 8',tagline:'No pain no gain, no question no answer',btnLabel:'LIFT THE QUESTION, BRO',
+    bg:'#030808',ballBg1:'#081a0a',ballBg2:'#020604',ballGlow:'rgba(0,200,80,0.45)',
+    accent:'#00cc44',accentLight:'#44ff88',answerColor:'#88ffaa',windowBg:'#040e06',
+    windowGlow:'rgba(0,200,80,0.3)',eightColor:'rgba(60,255,120,0.9)',
+    ballTexture:'grid',
+    font:"'Exo 2',sans-serif",answerFont:"'Exo 2',sans-serif",eightSymbol:'💪',
+    positive:["BRO. YES. GET THOSE GAINS.","That's a PR bro. Do it.","Your form is perfect. GO.","No days off. The answer is YES.","Bro the universe is spotting you. YES.","LOCK IN. The answer is yes.","LETS GOOO. YES BRO.","Clean rep. Clean yes. Let's get it.","That's not a question that's a statement. YES."],
+    neutral:["Bro are you even tracking macros on this question?","Deload week. Come back to this.","Your form is off. Reassess.","The gains don't lie but this question might.","Are you eating enough protein to handle this answer?"],
+    negative:["Bro that's a skip day. No.","Bad lift. No gains here.","That's ego lifting. Put it down. No.","The mirror doesn't lie bro. No.","Not hitting PRs with that energy. No."],
+    shakeS:'electric',revealS:'beep',
+  },
+  conspiracy:{
+    name:'Conspiracy Theorist',emoji:'🕵️',desc:"They don't want you to know",tier:'premium',pack:'chaos',
+    title:'THE TRUTH IS 8',tagline:"THEY don't want you to ask this",btnLabel:'Access Classified Info',
+    bg:'#020804',ballBg1:'#051508',ballBg2:'#010402',ballGlow:'rgba(0,180,60,0.4)',
+    accent:'#00bb44',accentLight:'#44ee88',answerColor:'#88ffbb',windowBg:'#030c06',
+    windowGlow:'rgba(0,180,60,0.3)',eightColor:'rgba(60,255,130,0.9)',
+    ballTexture:'static',
+    font:"'VT323',monospace",answerFont:"'VT323',monospace",eightSymbol:'👁',
+    positive:["YES and THEY know it too. That's why THEY're scared.","Affirmative. The documents confirm it.","Yes. I've seen the files. Don't ask how.","The satellites already picked up your answer: YES.","They tried to bury this but: YES.","Yes. Follow the money. It leads to yes.","Classified answer: YES. You didn't hear this from me.","Yes. Wake up. The truth is yes.","That's exactly what they WANT you to think. And also: yes."],
+    neutral:["The signal is being jammed. Suspicious.","They're monitoring this question. Sit tight.","The truth is out there but it's redacted today.","Three agencies just started watching this ball. Be careful.","Your question was intercepted. Try again on a VPN."],
+    negative:["No. And if you ask again they WILL notice.","Negative. The mainstream answer is yes, which means NO.","No. The birds reported back. No.","They want you to say yes. So: no.","No. This has Soros written all over it."],
+    shakeS:'electric',revealS:'beep',
+  },
+  nihilist:{
+    name:'Nihilist',emoji:'🏴',desc:'Nothing matters but also... yes',tier:'premium',pack:'chaos',
+    title:'∅ Ball',tagline:'Nothing matters. Especially this.',btnLabel:'Ask the Void',
+    bg:'#020202',ballBg1:'#0a0a0a',ballBg2:'#010101',ballGlow:'rgba(80,80,80,0.4)',
+    accent:'#666666',accentLight:'#aaaaaa',answerColor:'#cccccc',windowBg:'#050505',
+    windowGlow:'rgba(80,80,80,0.2)',eightColor:'rgba(150,150,150,0.8)',
+    ballTexture:'void',
+    font:"'Playfair Display',serif",answerFont:"'Playfair Display',serif",eightSymbol:'∅',
+    positive:["Yes, though it changes nothing in the cosmic scale.","Yes. Enjoy it. In 80 years it won't matter anyway.","Sure. Yes. The universe is indifferent but the answer is yes.","Yes. Fleeting, meaningless, yes.","Fine. Yes. Not that it matters to the heat death of the universe.","Yes. Briefly, yes.","The answer is yes. It will pass. Everything passes.","Yes. Savor this, for nothing lasts.","Yes. How beautifully, temporarily yes."],
+    neutral:["The void does not distinguish between yes and no.","Does the answer matter? Does anything?","Time is a flat circle. Circle has no answer.","The question is valid. The universe is not.","Consult the void. The void is busy being nothing."],
+    negative:["No. But also nothing is real so take that as you will.","No. In the grand scale, also yes. Ultimately no.","The answer is no. The meaning is also no. The point is also no.","Nihilism says no. So does the oracle. So does everyone eventually.","No. We're all stardust. What were you saying?"],
+    shakeS:'thud',revealS:'gentle',
+  },
+  influencer:{
+    name:'Influencer',emoji:'🧁',desc:'So aesthetic, link in bio bestie',tier:'premium',pack:'chaos',
+    title:'Oracle ✨ Collab',tagline:'This oracle moment is GIVING — not sponsored',btnLabel:'✨ Collab with Oracle',
+    bg:'#080005',ballBg1:'#180a15',ballBg2:'#060004',ballGlow:'rgba(255,80,180,0.5)',
+    accent:'#ff44aa',accentLight:'#ff99cc',answerColor:'#ffbbdd',windowBg:'#100510',
+    windowGlow:'rgba(255,80,180,0.3)',eightColor:'rgba(255,120,180,0.9)',
+    ballTexture:'glitter',
+    font:"'Permanent Marker',cursive",answerFont:"'Permanent Marker',cursive",eightSymbol:'✨',
+    positive:["YES and this is so on brand for you! Link in bio!","Obsessed with this question. The answer is YES! ✨","Not me manifesting YES energy for you bestie 💖","Slay! The oracle says yes and I am HERE for it.","YES! This is SO aesthetic I cannot!","Yes and you better tag me when it happens!","The vibe is immaculate. The answer is yes. Period.","POV: the oracle says yes and I'm crying happy tears","Yes! I literally cannot stop looking at this answer!"],
+    neutral:["Ugh the algorithm is suppressing my answer rn.","The engagement on this question is... concerning.","Let me circle back after my brand deal meeting.","Adding this to my content calendar. Stay tuned.","The oracle's analytics are down. Try again!"],
+    negative:["No babe and I say this as your biggest supporter.","This is not giving the energy we discussed. No.","The mood board said no. I'm sorry.","Shadowbanned question. The answer is no.","Not aesthetic enough for a yes. No."],
+    shakeS:'zap',revealS:'fanfare',
+  },
+  webmd:{
+    name:'WebMD',emoji:'👨‍⚕️',desc:'Yes, but also you probably have 6 diseases',tier:'premium',pack:'wisdom',
+    title:'Dr. 8 MD',tagline:'Consult a real doctor, not this ball',btnLabel:'Self-Diagnose with Oracle',
+    bg:'#020608',ballBg1:'#050e18',ballBg2:'#010408',ballGlow:'rgba(30,100,200,0.4)',
+    accent:'#3388dd',accentLight:'#66bbff',answerColor:'#99ccff',windowBg:'#030810',
+    windowGlow:'rgba(30,100,200,0.25)',eightColor:'rgba(80,160,240,0.9)',
+    ballTexture:'static',
+    font:"'Exo 2',sans-serif",answerFont:"'Exo 2',sans-serif",eightSymbol:'⚕',
+    positive:["Yes — though you should monitor for side effects.","Yes. Also drink more water. And see a doctor.","Positive outcome likely. Unless it's the other thing.","Yes. Though your search history suggests you also have 4 other problems.","Yes! Rare but possible. Just like your symptoms.","Clinically, yes. Anecdotally, also yes. Please see a physician.","Yes. But please stop googling symptoms after this.","Results indicate: yes. Also: are you drinking enough water?","Yes. Prognosis: good. Now close this tab and call your doctor."],
+    neutral:["Symptoms suggest: unclear. Could be anything. Or nothing.","Further testing required. We recommend a blood panel.","The diagnosis is pending. Meanwhile, stay hydrated.","Inconclusive. Please describe your symptoms in more detail.","Have you tried turning yourself off and on again?"],
+    negative:["No. Also your search history is concerning. Please see a doctor.","No. The prognosis is not favorable. Nor are your recent searches.","Negative result. Side effects may include disappointment.","No. And we detected three additional issues while checking.","No. But the good news is it's not lupus. It's never lupus."],
+    shakeS:'soft',revealS:'beep',
+  },
+  illuminati:{
+    name:'Illuminati',emoji:'👁️',desc:'We already knew you would ask that',tier:'premium',pack:'chaos',
+    title:'All-Seeing 8',tagline:'We knew you would open this app today',btnLabel:'Submit Your Query (We Already Know It)',
+    bg:'#050500',ballBg1:'#101000',ballBg2:'#040400',ballGlow:'rgba(220,200,0,0.45)',
+    accent:'#ccbb00',accentLight:'#ffee44',answerColor:'#ffee88',windowBg:'#0a0a00',
+    windowGlow:'rgba(220,200,0,0.3)',eightColor:'rgba(255,220,60,0.9)',
+    ballTexture:'gold',
+    font:"'Cinzel',serif",answerFont:"'Cinzel',serif",eightSymbol:'△',
+    positive:["We knew you would ask this. The answer, which we pre-determined, is yes.","Yes. We arranged it.","Affirmative. The plan is proceeding.","Yes. The 33rd layer confirms it.","We placed the answer here before you were born: yes.","Yes. As above, so below.","The triangle points upward. That means yes.","Yes. Denver Airport approves.","We've been expecting this question. Yes."],
+    neutral:["This question is above your clearance level.","The 33rd degree has not yet deliberated.","We are aware of your question. We will respond in time.","Your coordinates have been logged. Answer: pending.","The owl knows. We do not share the owl's counsel freely."],
+    negative:["No. The bloodlines have spoken.","We did not arrange this. Therefore: no.","No. The capstone is not aligned for this outcome.","We have already decided: no. This was decided in 1776.","No. The lizards concur."],
+    shakeS:'mystic',revealS:'chime',
+  },
+};
+
+const PACKS = {
+  chaos:{name:'Chaos Pack',emoji:'🌪️',desc:'Sarcastic, Hype Man, Pirate, Robot, Villain, Gossip, Boomer Dad, Passive Aggressive, Gen Z, Gym Bro, Conspiracy, Nihilist, Influencer, Illuminati',price:'$2.99'},
+  wisdom:{name:'Wisdom Pack',emoji:'🌟',desc:'Counsellor, Shakespeare, Ghost, Sensei, Genie, Fortune Cookie, WebMD',price:'$2.99'},
+};
+
+const THEMES = {
+  dark:{name:'Midnight',emoji:'🌑',free:true,light:false,preview:{bg:'#0a0508',a:'#c9a84c'},
+    vars:{'--bg':'#0a0508','--bg2':'#12080f','--accent':'#c9a84c','--accent-light':'#f0d080','--border':'rgba(201,168,76,0.2)','--surface':'rgba(255,255,255,0.04)','--text':'rgba(255,255,255,0.85)','--subtext':'rgba(255,255,255,0.4)'}},
+  light:{name:'Daylight',emoji:'☀️',free:true,light:true,preview:{bg:'#f5f0e8',a:'#8b5e1a'},
+    vars:{'--bg':'#f5f0e8','--bg2':'#ede8da','--accent':'#8b5e1a','--accent-light':'#6b4010','--border':'rgba(139,94,26,0.25)','--surface':'rgba(0,0,0,0.04)','--text':'rgba(20,10,0,0.85)','--subtext':'rgba(20,10,0,0.4)'}},
+  ocean:{name:'Deep Ocean',emoji:'🌊',free:false,light:false,preview:{bg:'#020c14',a:'#00ccdd'},
+    vars:{'--bg':'#020c14','--bg2':'#030f18','--accent':'#00ccdd','--accent-light':'#66eeff','--border':'rgba(0,180,220,0.2)','--surface':'rgba(0,150,200,0.06)','--text':'rgba(200,240,255,0.85)','--subtext':'rgba(200,240,255,0.4)'}},
+  blossom:{name:'Cherry Blossom',emoji:'🌸',free:false,light:true,preview:{bg:'#fff0f5',a:'#cc3366'},
+    vars:{'--bg':'#fff0f5','--bg2':'#ffe6ef','--accent':'#cc3366','--accent-light':'#aa1144','--border':'rgba(200,50,100,0.2)','--surface':'rgba(200,50,100,0.05)','--text':'rgba(60,10,30,0.85)','--subtext':'rgba(60,10,30,0.4)'}},
+  inferno:{name:'Inferno',emoji:'🔥',free:false,light:false,preview:{bg:'#080100',a:'#ff4400'},
+    vars:{'--bg':'#080100','--bg2':'#0f0200','--accent':'#ff4400','--accent-light':'#ff8844','--border':'rgba(255,60,0,0.22)','--surface':'rgba(255,40,0,0.06)','--text':'rgba(255,220,200,0.85)','--subtext':'rgba(255,200,180,0.4)'}},
+  marble:{name:'Marble & Gold',emoji:'🏛️',free:false,light:true,preview:{bg:'#f8f4ee',a:'#9a7c2e'},
+    vars:{'--bg':'#f8f4ee','--bg2':'#f0ece4','--accent':'#9a7c2e','--accent-light':'#7a5c14','--border':'rgba(154,124,46,0.22)','--surface':'rgba(154,124,46,0.05)','--text':'rgba(30,20,10,0.85)','--subtext':'rgba(30,20,10,0.4)'}},
+  nebula:{name:'Nebula',emoji:'🌌',free:false,light:false,preview:{bg:'#04010a',a:'#aa44ff'},
+    vars:{'--bg':'#04010a','--bg2':'#06010f','--accent':'#aa44ff','--accent-light':'#dd88ff','--border':'rgba(160,60,255,0.2)','--surface':'rgba(130,40,255,0.05)','--text':'rgba(230,200,255,0.85)','--subtext':'rgba(200,170,255,0.4)'}},
+  forest:{name:'Forest Floor',emoji:'🌿',free:false,light:false,preview:{bg:'#010802',a:'#44aa44'},
+    vars:{'--bg':'#010802','--bg2':'#010c03','--accent':'#44aa44','--accent-light':'#88cc66','--border':'rgba(60,160,60,0.2)','--surface':'rgba(40,130,40,0.05)','--text':'rgba(200,230,200,0.85)','--subtext':'rgba(180,220,180,0.4)'}},
+  neon:{name:'Neon Arcade',emoji:'⚡',free:false,light:false,preview:{bg:'#000308',a:'#00ffff'},
+    vars:{'--bg':'#000308','--bg2':'#00040c','--accent':'#00ffff','--accent-light':'#ff00ff','--border':'rgba(0,255,255,0.2)','--surface':'rgba(0,200,255,0.04)','--text':'rgba(200,255,255,0.88)','--subtext':'rgba(150,220,255,0.45)'}},
+  bone:{name:'Bone & Ink',emoji:'💀',free:false,light:true,preview:{bg:'#f0ebe0',a:'#1a1008'},
+    vars:{'--bg':'#f0ebe0','--bg2':'#e8e2d4','--accent':'#1a1008','--accent-light':'#2a1a10','--border':'rgba(20,10,0,0.18)','--surface':'rgba(20,10,0,0.04)','--text':'rgba(15,8,2,0.88)','--subtext':'rgba(15,8,2,0.4)'}},
+};
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let owned = {personalities:['oracle'], themes:['dark','light'], packs:[]};
+let currentP = 'oracle';
+let currentTheme = 'dark';
+let isPreviewing = false;
+let previewPersonality = null;
+let readings = [];
+let logFilter = 'all';
+let soundOn = true;
+let busy = false;
+let dropOpen = false;
+
+// ═══════════════════════════════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════════════════════════════
+let actx = null;
+function ac(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();return actx;}
+function tone(f,t,d,g=0.2,det=0){const c=ac(),o=c.createOscillator(),gn=c.createGain();o.connect(gn);gn.connect(c.destination);o.type=t;o.frequency.value=f;o.detune.value=det;gn.gain.setValueAtTime(g,c.currentTime);gn.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);o.start();o.stop(c.currentTime+d);}
+function noise(d,g=0.1){const c=ac(),b=c.createBuffer(1,c.sampleRate*d,c.sampleRate),da=b.getChannelData(0);for(let i=0;i<da.length;i++)da[i]=Math.random()*2-1;const s=c.createBufferSource(),gn=c.createGain();s.buffer=b;gn.gain.setValueAtTime(g,c.currentTime);gn.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);s.connect(gn);gn.connect(c.destination);s.start();s.stop(c.currentTime+d);}
+const SFX={
+  shake:{
+    mystic:()=>{noise(0.3,0.07);tone(120,'sine',0.4,0.16);setTimeout(()=>tone(180,'sine',0.3,0.1),100);},
+    thud:()=>{tone(55,'sine',0.18,0.4);noise(0.12,0.2);},
+    zap:()=>{tone(800,'sawtooth',0.05,0.16);tone(1200,'sawtooth',0.07,0.12,-200);noise(0.08,0.08);},
+    soft:()=>{tone(280,'sine',0.4,0.09);tone(380,'sine',0.3,0.07);},
+    splash:()=>{noise(0.4,0.1);tone(140,'sine',0.5,0.12);},
+    electric:()=>{[400,600,800].forEach((f,i)=>setTimeout(()=>tone(f,'square',0.05,0.09),i*55));},
+  },
+  reveal:{
+    chime:()=>{[523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,'sine',0.5,0.16),i*80));},
+    bloop:()=>{tone(300,'sine',0.05,0.25);setTimeout(()=>tone(500,'sine',0.14,0.2),60);},
+    fanfare:()=>{[392,523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,'square',0.09,0.12),i*55));},
+    gentle:()=>{[440,550,660].forEach((f,i)=>setTimeout(()=>tone(f,'sine',0.6,0.08),i*110));},
+    cannon:()=>{tone(75,'sine',0.28,0.4);noise(0.18,0.25);setTimeout(()=>tone(115,'sine',0.28,0.25),90);},
+    beep:()=>{tone(880,'square',0.07,0.16);setTimeout(()=>tone(1320,'square',0.07,0.16),90);},
+  }
+};
+function play(type,variant){if(!soundOn)return;try{SFX[type][variant]?.();}catch(e){}}
+function toggleSound(){soundOn=!soundOn;document.getElementById('volBtn').textContent=soundOn?'🔊':'🔇';}
+
+// ═══════════════════════════════════════════════════════════════
+// STARS
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  const c=document.getElementById('stars');
+  for(let i=0;i<80;i++){
+    const s=document.createElement('span'),sz=Math.random()<0.1?3:Math.random()<0.3?2:1;
+    s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;background:rgba(255,255,${Math.random()>.5?200:255},${0.4+Math.random()*0.6});--d:${2+Math.random()*4}s;--delay:-${Math.random()*4}s;`;
+    c.appendChild(s);
+  }
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// BALL TEXTURE PAINTER
+// ═══════════════════════════════════════════════════════════════
+function paintBall(p){
+  const canvas=document.getElementById('ballCanvas');
+  const size=canvas.offsetWidth||290;
+  canvas.width=size;canvas.height=size;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,size,size);
+  const cx=size/2,cy=size/2,r=size/2;
+  // clip to circle
+  ctx.save();ctx.beginPath();ctx.arc(cx,cy,r-1,0,Math.PI*2);ctx.clip();
+
+  const t=p.ballTexture||'starfield';
+  if(t==='starfield'){
+    for(let i=0;i<60;i++){
+      const x=Math.random()*size,y=Math.random()*size,s=Math.random()*1.5+0.5;
+      ctx.fillStyle=`rgba(255,255,255,${0.2+Math.random()*0.5})`;
+      ctx.beginPath();ctx.arc(x,y,s,0,Math.PI*2);ctx.fill();
+    }
+  } else if(t==='cracks'){
+    ctx.strokeStyle='rgba(255,140,0,0.4)';ctx.lineWidth=1;
+    for(let i=0;i<12;i++){
+      ctx.beginPath();ctx.moveTo(cx+Math.random()*r*0.8-r*0.4,cy+Math.random()*r*0.8-r*0.4);
+      for(let j=0;j<4;j++){ctx.lineTo(cx+Math.random()*r*1.2-r*0.6,cy+Math.random()*r*1.2-r*0.6);}
+      ctx.stroke();
+    }
+  } else if(t==='confetti'){
+    for(let i=0;i<40;i++){
+      const x=Math.random()*size,y=Math.random()*size;
+      ctx.fillStyle=`hsl(${Math.random()*360},100%,70%)`;
+      ctx.fillRect(x,y,Math.random()*6+2,Math.random()*3+1);
+    }
+  } else if(t==='waves'){
+    ctx.strokeStyle='rgba(100,200,255,0.2)';ctx.lineWidth=1;
+    for(let i=0;i<8;i++){
+      ctx.beginPath();
+      for(let x=0;x<size;x+=2){ctx.lineTo(x,(i*size/8)+Math.sin(x/20+i)*8);}
+      ctx.stroke();
+    }
+  } else if(t==='grid'){
+    ctx.strokeStyle='rgba(0,255,100,0.15)';ctx.lineWidth=0.5;
+    for(let x=0;x<size;x+=20){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,size);ctx.stroke();}
+    for(let y=0;y<size;y+=20){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(size,y);ctx.stroke();}
+  } else if(t==='velvet'){
+    const g=ctx.createRadialGradient(cx*0.6,cy*0.6,0,cx,cy,r);
+    g.addColorStop(0,'rgba(255,180,220,0.1)');g.addColorStop(1,'rgba(0,0,0,0.4)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,size,size);
+    for(let i=0;i<200;i++){
+      const x=Math.random()*size,y=Math.random()*size;
+      ctx.fillStyle=`rgba(255,150,200,${Math.random()*0.08})`;
+      ctx.beginPath();ctx.arc(x,y,Math.random()*2,0,Math.PI*2);ctx.fill();
+    }
+  } else if(t==='lightning'){
+    ctx.strokeStyle='rgba(255,50,100,0.35)';ctx.lineWidth=1;
+    for(let i=0;i<5;i++){
+      ctx.beginPath();let x=Math.random()*size,y=0;ctx.moveTo(x,y);
+      while(y<size){y+=Math.random()*20+5;x+=Math.random()*30-15;ctx.lineTo(x,y);}
+      ctx.stroke();
+    }
+  } else if(t==='mist'){
+    for(let i=0;i<6;i++){
+      const g=ctx.createRadialGradient(Math.random()*size,Math.random()*size,0,cx,cy,r);
+      g.addColorStop(0,'rgba(180,220,255,0.06)');g.addColorStop(1,'transparent');
+      ctx.fillStyle=g;ctx.fillRect(0,0,size,size);
+    }
+  } else if(t==='bamboo'){
+    ctx.strokeStyle='rgba(120,180,20,0.15)';ctx.lineWidth=3;
+    for(let x=0;x<size;x+=15){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,size);ctx.stroke();}
+    ctx.strokeStyle='rgba(100,160,10,0.1)';ctx.lineWidth=1;
+    for(let y=0;y<size;y+=25){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(size,y);ctx.stroke();}
+  } else if(t==='glitter'){
+    for(let i=0;i<80;i++){
+      const x=Math.random()*size,y=Math.random()*size,s=Math.random()*2+0.5;
+      ctx.fillStyle=`hsla(${Math.random()*60+280},100%,80%,${0.3+Math.random()*0.5})`;
+      ctx.save();ctx.translate(x,y);ctx.rotate(Math.random()*Math.PI);
+      ctx.fillRect(-s,-s/3,s*2,s*0.6);ctx.restore();
+    }
+  } else if(t==='gold'){
+    for(let i=0;i<5;i++){
+      const g=ctx.createLinearGradient(0,i*size/5,size,(i+1)*size/5);
+      g.addColorStop(0,'rgba(255,200,0,0)');g.addColorStop(0.5,`rgba(255,200,0,${0.05+i*0.01})`);g.addColorStop(1,'rgba(255,200,0,0)');
+      ctx.fillStyle=g;ctx.fillRect(0,i*size/5,size,size/5);
+    }
+  } else if(t==='paper'){
+    ctx.fillStyle='rgba(255,240,200,0.06)';ctx.fillRect(0,0,size,size);
+    for(let i=0;i<3;i++){
+      ctx.strokeStyle=`rgba(200,180,120,${0.04+i*0.02})`;ctx.lineWidth=0.5;
+      ctx.beginPath();ctx.moveTo(0,(i+1)*size/4);ctx.lineTo(size,(i+1)*size/4);ctx.stroke();
+    }
+  } else if(t==='woodgrain'){
+    for(let i=0;i<8;i++){
+      ctx.strokeStyle=`rgba(100,60,20,${0.08+i*0.01})`;ctx.lineWidth=2;
+      ctx.beginPath();
+      for(let x=0;x<size;x+=3){ctx.lineTo(x,i*size/8+Math.sin(x/30)*4);}
+      ctx.stroke();
+    }
+  } else if(t==='static'){
+    for(let i=0;i<300;i++){
+      const x=Math.random()*size,y=Math.random()*size;
+      ctx.fillStyle=`rgba(0,255,60,${Math.random()*0.15})`;
+      ctx.fillRect(x,y,1,1);
+    }
+  } else if(t==='void'){
+    // Nothing — pure darkness
+  }
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════════════════════
+function applyTheme(key, preview=false){
+  if(!preview) currentTheme=key;
+  const t=THEMES[key];
+  Object.entries(t.vars).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
+  document.querySelector('.header').style.background=t.light?'rgba(245,240,232,0.92)':'rgba(10,5,8,0.92)';
+  document.getElementById('stars').style.display=t.light?'none':'block';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PERSONALITY
+// ═══════════════════════════════════════════════════════════════
+function applyPersonality(key, preview=false){
+  const p=PERSONALITIES[key];
+  const r=document.documentElement;
+  r.style.setProperty('--ball-glow',p.ballGlow);
+  r.style.setProperty('--font-body',p.font);
+  r.style.setProperty('--font-answer',p.answerFont);
+  document.getElementById('titleText').textContent=p.title;
+  document.getElementById('taglineText').textContent=p.tagline;
+  document.getElementById('askBtn').textContent=p.btnLabel;
+  document.getElementById('eightNum').textContent=p.eightSymbol;
+  const at=document.getElementById('answerText');
+  at.style.fontFamily=p.answerFont;
+  const ball=document.getElementById('ball');
+  ball.style.background=`radial-gradient(circle at 35% 30%,${p.ballBg1} 0%,${p.ballBg2} 60%,#000 100%)`;
+  ball.style.boxShadow=`0 0 0 2px rgba(255,255,255,0.04),0 0 60px rgba(0,0,0,0.9),0 0 100px ${p.ballGlow},inset 0 -20px 60px rgba(0,0,0,0.8)`;
+  const win=document.getElementById('ballWindow');
+  win.style.background=`radial-gradient(circle,${p.windowBg} 0%,#010005 100%)`;
+  win.style.boxShadow=`0 0 0 1.5px ${p.windowGlow},0 0 20px ${p.windowGlow},inset 0 2px 10px rgba(255,255,255,0.03)`;
+  document.getElementById('eightNum').style.textShadow=`0 0 20px ${p.eightColor}`;
+
+  // Update selector
+  document.getElementById('selEmoji').textContent=p.emoji;
+  document.getElementById('selName').textContent=p.name;
+  const tierEl=document.getElementById('selTier');
+  tierEl.textContent=p.tier==='premium'?'✦ PREMIUM':'FREE';
+  tierEl.className='sel-tier '+(p.tier==='premium'?'tier-premium':'tier-free');
+
+  // Texture
+  setTimeout(()=>paintBall(p),50);
+
+  // Preview lock
+  const bc=document.getElementById('ballContainer');
+  const overlay=document.getElementById('previewOverlay');
+  if(preview && !owned.personalities.includes(key)){
+    bc.classList.add('previewing');
+    isPreviewing=true;
+    previewPersonality=key;
+  } else {
+    bc.classList.remove('previewing');
+    isPreviewing=false;
+    previewPersonality=null;
+    if(!preview) currentP=key;
+  }
+
+  document.getElementById('answerFace').classList.remove('visible');
+  document.getElementById('eightFace').style.opacity='1';
+  closeDropdown();
+  refreshDropdownActive();
+}
+
+function refreshDropdownActive(){
+  document.querySelectorAll('.d-item').forEach(el=>{
+    el.classList.toggle('active',el.dataset.key===currentP&&!isPreviewing);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DROPDOWN
+// ═══════════════════════════════════════════════════════════════
+function buildDropdown(){
+  const menu=document.getElementById('dropdownMenu');
+  const free=Object.entries(PERSONALITIES).filter(([,p])=>p.tier==='free');
+  const prem=Object.entries(PERSONALITIES).filter(([,p])=>p.tier==='premium');
+  let html=`<div class="dd-section">✦ Free</div>`;
+  free.forEach(([key,p])=>{
+    html+=ddItem(key,p);
+  });
+  html+=`<div class="dd-section">★ Premium — $1.29 CAD each</div>`;
+  prem.forEach(([key,p])=>{
+    html+=ddItem(key,p);
+  });
+  menu.innerHTML=html;
+}
+
+function ddItem(key,p){
+  const isOwned=owned.personalities.includes(key);
+  const isFree=p.tier==='free';
+  const badge=isFree?`<span class="d-badge badge-free">FREE</span>`:isOwned?`<span class="d-badge badge-owned">OWNED</span>`:`<span class="d-badge badge-premium">$1.29</span>`;
+  const lock=(!isFree&&!isOwned)?`<span class="d-lock">🔒</span>`:'';
+  return `<div class="d-item ${isOwned||isFree?'':'locked'}" data-key="${key}" onclick="handlePersonalityClick('${key}')">
+    <span class="d-emoji">${p.emoji}</span>
+    <div class="d-info"><div class="d-name">${p.name}</div><div class="d-desc">${p.desc}</div></div>
+    ${badge}${lock}
+  </div>`;
+}
+
+function handlePersonalityClick(key){
+  const p=PERSONALITIES[key];
+  const isOwned=owned.personalities.includes(key)||p.tier==='free';
+  if(isOwned){
+    applyPersonality(key,false);
+  } else {
+    applyPersonality(key,true);
+    closeDropdown();
+  }
+}
+
+function toggleDropdown(){
+  dropOpen=!dropOpen;
+  document.getElementById('dropdownMenu').classList.toggle('open',dropOpen);
+  document.getElementById('selectorTrigger').classList.toggle('open',dropOpen);
+}
+function closeDropdown(){
+  dropOpen=false;
+  document.getElementById('dropdownMenu').classList.remove('open');
+  document.getElementById('selectorTrigger').classList.remove('open');
+}
+document.addEventListener('click',e=>{
+  if(!document.getElementById('selectorWrap').contains(e.target)) closeDropdown();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// STORE
+// ═══════════════════════════════════════════════════════════════
+function buildStore(){
+  const pFull=Object.keys(PERSONALITIES).filter(k=>k!=='oracle').length;
+  const tFull=Object.keys(THEMES).filter(k=>!THEMES[k].free).length;
+  const allOwned=owned.personalities.length>= Object.keys(PERSONALITIES).length && owned.themes.length>=Object.keys(THEMES).length;
+  const subOwned=owned.packs.includes('subscription');
+
+  let html=`
+  <div class="store-hero">
+    <div class="store-hero-title">✦ Oracle Store</div>
+    <div class="store-hero-sub">Unlock personalities, themes & bundles.<br>Preview any personality before buying.</div>
+    <div class="bundle-row">
+      <div class="bundle-card">
+        <div class="bundle-name">Mystic Pass</div>
+        <div class="bundle-price">$2.99</div>
+        <div class="bundle-period">/month CAD</div>
+        <div class="bundle-desc">Everything unlocked,<br>new content first</div>
+        <button class="bundle-btn ${subOwned?'owned':''}" onclick="purchase('subscription')">${subOwned?'✓ Active':'Subscribe'}</button>
+      </div>
+      <div class="bundle-card featured">
+        <div class="bundle-name">Full Bundle</div>
+        <div class="bundle-price bundle-price">$7.99</div>
+        <div class="bundle-period">one-time CAD</div>
+        <div class="bundle-desc">All ${pFull} personalities<br>+ all ${tFull} premium themes</div>
+        <button class="bundle-btn ${allOwned?'owned':''}" onclick="purchase('bundle')">${allOwned?'✓ Owned':'Unlock All'}</button>
+      </div>
+    </div>
+  </div>
+  <div class="store-section">📦 Personality Packs — $2.99 CAD each</div>
+  <div class="store-grid">`;
+  Object.entries(PACKS).forEach(([key,pk])=>{
+    const isOwned=owned.packs.includes(key);
+    html+=`<div class="store-item ${isOwned?'owned':''}">
+      <span class="store-item-emoji">${pk.emoji}</span>
+      <div class="store-item-name">${pk.name}</div>
+      <div class="store-item-desc">${pk.desc.slice(0,60)}...</div>
+      <div class="store-item-price ${isOwned?'owned-label':''}">${isOwned?'✓ Owned':pk.price+' CAD'}</div>
+      <button class="si-buy-btn ${isOwned?'owned':''}" onclick="${isOwned?'':'purchase(\'pack:\'+\''+key+'\')'}}">${isOwned?'✓ Owned':'Unlock Pack'}</button>
+    </div>`;
+  });
+  html+=`</div>
+  <div class="store-section">🎭 Individual Personalities — $1.29 CAD each</div>
+  <div class="store-grid">`;
+  Object.entries(PERSONALITIES).filter(([,p])=>p.tier==='premium').forEach(([key,p])=>{
+    const isOwned=owned.personalities.includes(key);
+    html+=`<div class="store-item ${isOwned?'owned':''}">
+      <span class="store-item-emoji">${p.emoji}</span>
+      <div class="store-item-name">${p.name}</div>
+      <div class="store-item-desc">${p.desc}</div>
+      <div class="store-item-price ${isOwned?'owned-label':''}">${isOwned?'✓ Owned':'$1.29 CAD'}</div>
+      <button class="si-buy-btn ${isOwned?'owned':''}" onclick="${isOwned?'void(0)':'purchase(\'p:\'+\''+key+'\')'}}">${isOwned?'✓ Owned':'Unlock'}</button>
+    </div>`;
+  });
+  html+=`</div>
+  <div class="store-section">🎨 Colour Themes — $1.29 CAD each</div>
+  <div class="store-grid">`;
+  Object.entries(THEMES).forEach(([key,t])=>{
+    const isOwned=owned.themes.includes(key)||t.free;
+    html+=`<div class="store-item ${isOwned?'owned':''}" onclick="${isOwned?'previewTheme(\''+key+'\')':''}">
+      <div class="theme-swatch" style="background:${t.preview.bg};color:${t.preview.a};">${t.emoji} ${t.name}</div>
+      <div class="store-item-name">${t.name}</div>
+      <div class="store-item-desc">${t.light?'Light':'Dark'} theme${t.free?' · Free':''}</div>
+      <div class="store-item-price ${isOwned?'owned-label free':''}">${t.free?'FREE':isOwned?'✓ Owned':'$1.29 CAD'}</div>
+      ${isOwned?`<button class="si-buy-btn owned" onclick="applyTheme('${key}')" style="cursor:pointer;">Apply</button>`:`<button class="si-buy-btn" onclick="purchase('t:${key}')" >Unlock</button>`}
+    </div>`;
+  });
+  html+=`</div><div style="height:20px"></div>
+  <div style="text-align:center;font-size:0.45rem;letter-spacing:0.12em;color:rgba(255,255,255,0.2);padding:10px;">
+    Purchases are simulated for demo purposes.<br>
+    Restore Purchases · Privacy Policy · Terms
+  </div>`;
+  document.getElementById('storeBody').innerHTML=html;
+}
+
+function purchase(what){
+  // Simulated purchase flow
+  let name='';
+  if(what==='bundle'){
+    owned.personalities=Object.keys(PERSONALITIES);
+    owned.themes=Object.keys(THEMES);
+    owned.packs=Object.keys(PACKS);
+    name='Full Bundle';
+  } else if(what==='subscription'){
+    owned.packs.push('subscription');
+    owned.personalities=Object.keys(PERSONALITIES);
+    owned.themes=Object.keys(THEMES);
+    name='Mystic Pass';
+  } else if(what.startsWith('pack:')){
+    const pk=what.slice(5);
+    owned.packs.push(pk);
+    Object.entries(PERSONALITIES).forEach(([k,p])=>{if(p.pack===pk)owned.personalities.push(k);});
+    name=PACKS[pk].name;
+  } else if(what.startsWith('p:')){
+    const k=what.slice(2);
+    owned.personalities.push(k);
+    name=PERSONALITIES[k].name;
+    // If currently previewing this one, activate it
+    if(previewPersonality===k){applyPersonality(k,false);}
+  } else if(what.startsWith('t:')){
+    const k=what.slice(2);
+    owned.themes.push(k);
+    name=THEMES[k].name;
+    applyTheme(k);
+  }
+  showToast(`✦ ${name} unlocked!`);
+  buildDropdown();
+  buildStore();
+  refreshDropdownActive();
+}
+
+function previewTheme(key){
+  applyTheme(key,true);
+  showToast(`Previewing ${THEMES[key].name} — purchase to keep`);
+}
+
+function openStoreForCurrent(){
+  closeAllPanels();
+  openPanel('storePanel');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PANELS
+// ═══════════════════════════════════════════════════════════════
+function openPanel(id){
+  if(id==='storePanel')buildStore();
+  document.getElementById(id).classList.add('open');
+  document.getElementById('overlay').classList.add('open');
+}
+function closePanel(id){
+  document.getElementById(id).classList.remove('open');
+  if(!document.querySelector('.panel.open')) document.getElementById('overlay').classList.remove('open');
+}
+function closeAllPanels(){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOG
+// ═══════════════════════════════════════════════════════════════
+function filterLog(f,btn){
+  logFilter=f;
+  document.querySelectorAll('.lfbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderLog();
+}
+function renderLog(){
+  const container=document.getElementById('logEntries');
+  const filtered=logFilter==='all'?readings:readings.filter(r=>r.cc===logFilter);
+  document.getElementById('logTotal').textContent=`${readings.length} reading${readings.length!==1?'s':''}`;
+  if(filtered.length===0){
+    container.innerHTML=`<div class="log-empty">🔮<br>${readings.length===0?'No readings yet.<br>Ask the oracle something.':`No ${logFilter} readings.`}</div>`;return;
+  }
+  container.innerHTML=filtered.map(r=>`<div class="log-entry"><div class="log-meta"><span class="log-persona">${r.persona}</span><span class="log-time">${r.time}</span></div><div class="log-q">${esc(r.q)}</div><div class="log-a ${r.cc}">"${esc(r.a)}"</div></div>`).join('');
+}
+function clearLog(){
+  if(!readings.length)return;
+  if(!confirm('Clear all readings?'))return;
+  readings=[];updateLogBtn();renderLog();
+}
+function addReading(q,a,cc){
+  const p=PERSONALITIES[currentP];
+  readings.unshift({q,a,cc,persona:`${p.emoji} ${p.name}`,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});
+  if(readings.length>100)readings.pop();
+  updateLogBtn();
+  if(document.getElementById('logPanel').classList.contains('open'))renderLog();
+}
+function updateLogBtn(){
+  const btn=document.getElementById('logBtn');
+  if(readings.length>0){
+    btn.innerHTML=`📜<div class="badge-dot"></div>`;
+  } else {
+    btn.innerHTML='📜';
+  }
+}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// ═══════════════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════════════
+let toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PARTICLES
+// ═══════════════════════════════════════════════════════════════
+function burst(){
+  const rect=document.getElementById('ballContainer').getBoundingClientRect();
+  const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+  const p=PERSONALITIES[currentP],colors=[p.accent,p.accentLight,p.answerColor,'#fff'];
+  for(let i=0;i<22;i++){
+    const el=document.createElement('div');el.className='particle';
+    const angle=(Math.PI*2*i)/22,dist=100+Math.random()*90,color=colors[Math.floor(Math.random()*colors.length)];
+    el.style.cssText=`left:${cx}px;top:${cy}px;background:${color};box-shadow:0 0 6px ${color};`;
+    document.body.appendChild(el);
+    el.animate([{transform:'translate(-50%,-50%) scale(1)',opacity:1},{transform:`translate(calc(-50% + ${Math.cos(angle)*dist}px),calc(-50% + ${Math.sin(angle)*dist}px)) scale(0)`,opacity:0}],{duration:600+Math.random()*400,easing:'ease-out',fill:'forwards'}).onfinish=()=>el.remove();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ORACLE
+// ═══════════════════════════════════════════════════════════════
+function pick(){
+  const p=PERSONALITIES[currentP],roll=Math.random();
+  let pool,cc;
+  if(roll<0.45){pool=p.positive;cc='pos';}
+  else if(roll<0.73){pool=p.neutral;cc='neu';}
+  else{pool=p.negative;cc='neg';}
+  return{text:pool[Math.floor(Math.random()*pool.length)],cc};
+}
+function ansColor(cc){
+  const p=PERSONALITIES[currentP];
+  return cc==='pos'?p.answerColor:cc==='neu'?p.accentLight:'#ff8888';
+}
+
+function ballClicked(){
+  if(isPreviewing)return; // preview overlay handles its own click
+  askOracle();
+}
+
+function askOracle(){
+  if(busy||isPreviewing)return;busy=true;
+  const p=PERSONALITIES[currentP];
+  const ball=document.getElementById('ball');
+  const ef=document.getElementById('eightFace');
+  const af=document.getElementById('answerFace');
+  const at=document.getElementById('answerText');
+
+  af.classList.remove('visible');ef.style.opacity='1';
+  play('shake',p.shakeS);
+  ball.style.animation='none';ball.classList.add('shaking');
+  setTimeout(()=>burst(),220);
+
+  setTimeout(()=>{
+    ball.classList.remove('shaking');ball.style.animation='float 4s ease-in-out infinite';
+    play('reveal',p.revealS);
+    const{text,cc}=pick();const color=ansColor(cc);
+    at.textContent=text;at.style.color=color;at.style.textShadow=`0 0 12px ${color}`;at.style.fontFamily=p.answerFont;
+    ef.style.opacity='0';af.classList.add('visible');
+    const q=document.getElementById('questionInput').value.trim()||'(no question asked)';
+    addReading(q,text,cc);
+    setTimeout(()=>{af.classList.remove('visible');setTimeout(()=>{ef.style.opacity='1';busy=false;},600);},3300);
+  },630);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FEEDBACK
+// ═══════════════════════════════════════════════════════════════
+function submitFeedback(){
+  const cat=document.getElementById('fbCategory').value;
+  const msg=document.getElementById('fbMessage').value.trim();
+  if(!cat){showToast('Please select a category');return;}
+  if(!msg){showToast('Please enter a message');return;}
+  document.getElementById('feedbackForm').style.display='none';
+  document.getElementById('fbSuccess').style.display='block';
+  setTimeout(()=>{
+    document.getElementById('feedbackForm').style.display='flex';
+    document.getElementById('fbSuccess').style.display='none';
+    document.getElementById('fbCategory').value='';
+    document.getElementById('fbName').value='';
+    document.getElementById('fbMessage').value='';
+    document.getElementById('fbEmail').value='';
+  },4000);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DEVICE SHAKE
+// ═══════════════════════════════════════════════════════════════
+let lastShake=0;
+window.addEventListener('devicemotion',e=>{
+  const a=e.accelerationIncludingGravity;if(!a)return;
+  const f=Math.abs(a.x)+Math.abs(a.y)+Math.abs(a.z),now=Date.now();
+  if(f>25&&now-lastShake>1800){lastShake=now;askOracle();}
+});
+document.getElementById('questionInput').addEventListener('keydown',e=>{if(e.key==='Enter')askOracle();});
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+buildDropdown();
+applyPersonality('oracle',false);
+applyTheme('dark');
+setTimeout(()=>paintBall(PERSONALITIES['oracle']),100);
+</script>
+</body>
+</html>
